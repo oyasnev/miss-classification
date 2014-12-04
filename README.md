@@ -1,4 +1,4 @@
-miss-classification
+Miss Classification
 ===================
 
 Misassemble classification (student project in Genome assembly course)
