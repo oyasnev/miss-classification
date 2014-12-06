@@ -1,11 +1,11 @@
 Miss Classification
 ===================
 
-Misassemble classification (student project in Genome assembly course)
+Misassembly classification (student project in Genome assembly course)
 
 # Description
 
-The tool classifies misassembles.
+The tool classifies misassemblies.
 
 # Authors
 
