@@ -7,6 +7,8 @@ __author__ = 'oyasnev'
 
 QUAST_CONTIGS = "/contigs_reports/contigs_report_contigs.stdout"
 
+DISTANCE_ESTIMATION_INPUT_FILE = "/__miss_classification_dist_est_input.txt"
+
 OVERLAP_THRESHOLD = 200
 
 
@@ -75,6 +77,35 @@ def predict_classes(mis_list):
     return mis_class
 
 
+""" Write info for distance estimation stage """
+
+
+def write_for_dist_est(mis_class, args):
+    print("Writing info for distance estimation stage...")
+    try:
+        fp = open(args.spades + DISTANCE_ESTIMATION_INPUT_FILE, "w")
+    except:
+        print("ERROR: some error on writing {}".format(args.spades + DISTANCE_ESTIMATION_INPUT_FILE))
+        exit(1)
+    else:
+        with fp:
+            fp.write(args.contigs + "\n")
+            fp.write(args.ref + "\n")
+            # broken bone
+            fp.write(str(len(mis_class.broken_bone)))
+            for mis in mis_class.broken_bone:
+                fp.write("{} {} {} {}\n".format(
+                    mis.align_list[0].ref_pos1, mis.align_list[0].ref_pos2,
+                    mis.align_list[0].contig_pos1, mis.align_list[0].contig_pos2))
+                fp.write("{} {} {} {}\n".format(
+                    mis.align_list[1].ref_pos1, mis.align_list[1].ref_pos2,
+                    mis.align_list[1].contig_pos1, mis.align_list[1].contig_pos2))
+
+
+            print("Done")
+            print()
+
+
 """ Parse contigs with extensive misassemblies """
 
 
@@ -119,10 +150,10 @@ def parse_contigs(contigs_path):
                     # Misassembly type
                     mis.type = mis_type_pattern.search(mis_text).group(1)
                     mis_list.append(mis)
-    print("Done")
-    print("{} extensive misassemblies found".format(len(mis_list)))
-    print()
-    return mis_list
+            print("Done")
+            print("{} extensive misassemblies found".format(len(mis_list)))
+            print()
+            return mis_list
 
 
 """ Parse and validate input arguments """
@@ -131,27 +162,54 @@ def parse_contigs(contigs_path):
 def get_args():
     parser = argparse.ArgumentParser(description='Miss Classification.')
     parser.add_argument("quast", help="path to QUAST report folder")
+    parser.add_argument("spades", help="path to SPAdes folder")
+    parser.add_argument("contigs", help="path to contigs FASTA file")
+    parser.add_argument("ref", help="path to reference FASTA file")
     args = parser.parse_args()
 
     print("Validating input arguments...")
-    args.quast_contigs = args.quast + QUAST_CONTIGS
-    if not os.path.exists(args.quast_contigs):
-        print("ERROR: {} is not a correct QUAST report folder".format(args.quast))
-        exit(1)
 
-    def test_file(path):
+    def is_file_readable(path):
+        if not os.path.exists(path):
+            print("ERROR: {} does not exits".format(path))
+            exit(1)
         try:
             fp = open(path, "r")
         except IOError as e:
-            print("ERROR: {} on reading {}".format(e.strerror, args.quast_contigs))
+            print("ERROR: {} on reading {}".format(e.strerror, path))
             exit(1)
         except:
-            print("ERROR: unknown error on reading {}".format(args.quast_contigs))
+            print("ERROR: unknown error on reading {}".format(path))
             exit(1)
         else:
             fp.close()
 
-    test_file(args.quast_contigs)
+    def is_folder_writable(path):
+        try:
+            test_file_path = path + "/__miss_classification_test_file.txt"
+            fp = open(test_file_path, "w")
+        except IOError as e:
+            print("ERROR: {} on writing in {}".format(e.strerror, path))
+            exit(1)
+        except:
+            print("ERROR: unknown error on writing {}".format(path))
+        else:
+            fp.close()
+            os.remove(test_file_path)
+
+    args.quast_contigs = args.quast + QUAST_CONTIGS
+    if not os.path.exists(args.quast_contigs):
+        print("ERROR: {} is not a correct QUAST report folder".format(args.quast))
+        exit(1)
+    is_file_readable(args.quast_contigs)
+
+    if not os.path.exists(args.spades):
+        print("ERROR: {} is not a correct SPAdes folder".format(args.spades))
+        exit(1)
+    is_folder_writable(args.spades)
+
+    is_file_readable(args.contigs)
+    is_file_readable(args.ref)
 
     print("OK")
     print()
@@ -166,3 +224,4 @@ mis_list = parse_contigs(args.quast_contigs)
 
 mis_class = predict_classes(mis_list)
 
+write_for_dist_est(mis_class, args)
