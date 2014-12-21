@@ -1,4 +1,5 @@
 import argparse
+from enum import Enum
 import os
 import re
 
@@ -6,8 +7,12 @@ __author__ = 'oyasnev'
 
 QUAST_CONTIGS = "/contigs_reports/contigs_report_contigs.stdout"
 
-FORWARD_STRAND = "FS"
-REVERSE_COMPLEMENT_STRAND = "RC"
+OVERLAP_THRESHOLD = 200
+
+
+class Strand(Enum):
+    forward = "fs"
+    reverseComplement = "rc"
 
 
 class RealAlignment:
@@ -17,9 +22,9 @@ class RealAlignment:
         self.contig_pos1 = int(align_tuple[2])
         self.contig_pos2 = int(align_tuple[3])
         if self.contig_pos2 - self.contig_pos1 >= 0:
-            self.strand = FORWARD_STRAND
+            self.strand = Strand.forward
         else:
-            self.strand = REVERSE_COMPLEMENT_STRAND
+            self.strand = Strand.reverseComplement
 
 
 class ExtMisassembly:
@@ -27,6 +32,47 @@ class ExtMisassembly:
         self.contig_name = ''
         self.type = ''
         self.align_list = []
+
+    def overlap_length(self):
+        pos1 = max(self.align_list[0].contig_pos1, self.align_list[0].contig_pos2)
+        pos2 = min(self.align_list[1].contig_pos1, self.align_list[1].contig_pos2)
+        if pos2 > pos1:
+            return 0
+        else:
+            return pos1 - pos2
+
+
+class MisClassification:
+    def __init__(self):
+        self.broken_bone = []
+        self.ignored = []
+        self.unknown = []
+
+
+""" Predict misassemblies classification """
+
+
+def predict_classes(mis_list):
+    mis_class = MisClassification()
+    for mis in mis_list:
+        # broken bone
+        if mis.align_list[0].strand is Strand.forward and mis.align_list[1].strand is Strand.forward:
+            if mis.overlap_length() >= OVERLAP_THRESHOLD:
+                mis_class.broken_bone.append(mis)
+            else:
+                mis_class.ignored.append(mis)
+            continue
+
+        # other cases
+        mis_class.unknown.append(mis)
+
+    print("Predicted classification")
+    print("Broken bone: {}".format(len(mis_class.broken_bone)))
+    print("Ignored:     {}".format(len(mis_class.ignored)))
+    print("Unknown:     {}".format(len(mis_class.unknown)))
+    print()
+
+    return mis_class
 
 
 """ Parse contigs with extensive misassemblies """
@@ -117,3 +163,6 @@ def get_args():
 
 args = get_args()
 mis_list = parse_contigs(args.quast_contigs)
+
+mis_class = predict_classes(mis_list)
+
