@@ -8,7 +8,7 @@ __author__ = 'oyasnev'
 
 QUAST_CONTIGS = "/contigs_reports/contigs_report_contigs.stdout"
 
-DISTANCE_ESTIMATION_INPUT_FILENAME = "/__miss_classification_dist_est_input.txt"
+DISTANCE_ESTIMATION_INPUT_FILENAME = "__miss_classification_dist_est_input.txt"
 DISTANCE_ESTIMATION_OUTPUT_FILENAME = "__miss_classification_dist_est_output.txt"
 SIMPLIFICATION_OUTPUT_FILENAME = "__miss_classification_simpl_output.txt"
 
